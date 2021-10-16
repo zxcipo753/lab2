@@ -9,6 +9,135 @@ void initial_stats(command* cmd){
     cmd->argc = 0;
 }
 
+void parsePipe(command* cmd, char* line){
+    char* copy_line = strdup(line);//make a duplicated line
+    cmd->pipe = 1;
+    char* token = NULL;
+    char* saveptr;
+    token = strtok_r(copy_line, "|", &saveptr);
+
+    if(token != NULL){
+        cmd->pipe = 1;
+        parseSpaces(cmd, token);
+    }
+
+    if(saveptr != NULL){
+        cmd->one = malloc(sizeof(command));
+        initialize(cmd->one);
+        parseSpaces(cmd->one, saveptr);
+    }
+}
+
+
+void parseSpaces(command* cmd, char* line){
+    char* copy_line = strdup(line);
+    char* token = NULL;
+    char* saveptr;
+
+    int index = 0;
+    token = strtok_r(copy_line, " ", &saveptr);
+    while(token != NULL){
+        cmd->arg[index] = strdup(token);
+        index+=1;
+        token = strtok_r(NULL, " ", &saveptr);
+    }
+    cmd->argc = index;
+    cmd->arg[index] = NULL;
+    free(line_dup);
+}
+
+void parseBackground(command* cmd, char* line){
+    cmd->background = 1;
+    char* ptr = line;
+    int index = 0;
+    while( *(ptr+index) != '\0' ){
+        if(*(ptr+index) == '&'){
+            *(ptr+index) = '\0';
+        }
+        index+=1;
+    }
+    parseSpaces(cmd, line);
+}
+
+void input_redirection(command* cmd, char* line){
+
+    char* copy_line = strdup(line);
+    
+    char* saveptr;
+    char* token;
+    token = strtok_r(copy_line, "<", &saveptr);
+    if(token != NULL){
+        parseSpaces(cmd, token);
+    }
+    if(saveptr != NULL){
+        if(*saveptr == '<'){
+            cmd->inputMod = 2;
+            saveptr = saveptr+1;
+        }
+        while(*saveptr == ' '){
+            saveptr+=1;
+        }
+        cmd->file = strdup(saveptr);
+    }
+}
+
+
+void output_redirection(command* cmd, char* line){
+    char* copy_line = strdup(line);
+    char* saveptr;
+    char* token;
+    token = strtok_r(copy_line, ">", &saveptr);
+    if(token != NULL){
+        parseSpaces(cmd, token);
+    }
+    if(saveptr != NULL){
+        if(*saveptr == '>'){
+            cmd->outputMod = 2;
+            saveptr = saveptr+1;
+        }else{
+            cmd->outputMod = 1;
+        }
+        while(*saveptr == ' '){
+            saveptr+=1;
+        }
+        cmd->file = strdup(saveptr);
+    }
+    free(line_dup);
+}
+void input_output_redirection(command* cmd, char* line){
+    cmd->one = malloc(sizeof(command));
+    initialize(cmd->one);
+    char* copy_line = strdup(line);
+    char* saveptr;
+    char* token = strtok_r(copy_line, "<", &saveptr);
+    if(token != NULL){
+        parseSpaces(cmd, token);
+    }
+    if(saveptr != NULL){
+        if(*(saveptr) == '<'){
+            cmd->inputMod = 2;
+            saveptr+=1;
+        }else{
+            cmd->inputMod = 1;
+        }
+    }
+    char* token1 = strtok_r(NULL, ">", &saveptr);
+    if(token1 != NULL){
+        cmd->file = strdup(token1);
+    }
+    
+    if(saveptr != NULL){
+        if(*(saveptr) == '>'){
+            saveptr+=1;
+            cmd->outputMod = 2;
+        }else{
+            cmd->outputMod = 1;
+        }
+        cmd->one->file = strdup(saveptr);
+    }
+    
+    
+}
 void cd_(command* cmd){
     static char pwd[PATH_SIZE]; //local
     getcwd(pwd, sizeof(pwd));
