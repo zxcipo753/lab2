@@ -8,7 +8,7 @@
 #include <dirent.h>
 #include <ctype.h>
 #include <sys/wait.h>
-#define SIZE 1024
+#define SET_SIZE 900
 
 void myCd(char **cmd);
 void myClr();
@@ -18,14 +18,70 @@ void myEnviron();
 void myHelp();
 void myPause();
 void myQuit();
+
+void myBatch(char *batchFile);
+void myPrompt();
+int myBackground(char **cmd);
+
 FILE *inRedirection(char **cmd) ;
 FILE *outRedirection(char **cmd) ;
-void shSetEnv(char *argument);
-void shShowEnviron(char **argument);
+void resetIO(FILE *in_container, FILE *out_container, int inNum, int outNum, int errNum);
 
 
 int main(int argc, char **argv) {
     
+}
+
+void myBatch(char *batchFile) {
+    char content[SET_SIZE] = "";
+    char **argument = NULL;
+
+    int inNum  = dup(STDIN_FILENO);
+    int outNum = dup(STDOUT_FILENO);
+    int errNum = dup(STDERR_FILENO);
+ 
+    FILE *readBatch = fopen(batchFile, "r");
+    FILE *in_container = NULL;
+    FILE *out_containter = NULL;
+
+    if(readBatch == NULL) {
+        printf("No content in batchfile to read.");
+    } else {
+        fgets(content, SET_SIZE, readBatch);
+        while(!feof(readBatch)) {
+            int i = 0;
+            //raplace newline with Null
+            while(content[i] != '\0') {
+                if(content[i] == '\n') {
+                    content[i] = '\0';
+                }
+                i++;
+            }
+            
+            //call pares_line() to split content to an argument
+            argument = parse_line(content);
+
+            in_container = inRedirection(argument);
+            out_containter = outRedirection(argument);
+
+            if(in_container) {
+                dup2(fileno(in_container), STDIN_FILENO);
+            }
+            if(out_containter) {
+                dup2(fileno(out_containter), STDOUT_FILENO);
+                dup2(fileno(out_containter), STDERR_FILENO);
+            }
+
+            myExecute(argument);
+            resetIO(in_container, out_containter, inNum, outNum, errNum);
+            free(argument);
+            strcpy(content, "");
+            fgets(content, sizeof(content), readBatch);
+        }
+        strcpy(content, "");
+        fclose(readBatch);
+    }
+    exit(EXIT_SUCCESS);
 }
 
 /* Make sure the command line is not empty, then split input into each token to get arguments*/
@@ -54,14 +110,16 @@ char **parse_line(char *input) {
 }
 
 
-int bg(char **argument) {
-    int i = 0;
-    while(argument[i]) {
-        i++;
+int myBackground(char **cmd) {
+    int index = 0;
+    while(cmd[index]) {
+        index++;
     }
-    if(strcmp(argument[i-1], "&") == 0) {
+
+    if(strcmp(cmd[index-1], "&") == 0) {
         return 1;
-    } else {
+    } 
+    else {
         return 0;
     }
 }
@@ -74,7 +132,6 @@ void myPrompt() {
         printf("Cannot get current directory.")
     }
 }
-
 
 void *builtIn(char **argument))(char **argument {
     void (*func)(char **) = NULL; 
@@ -95,7 +152,7 @@ void *builtIn(char **argument))(char **argument {
     return NULL;
 }
 
-/* Change Directory function that we went over in class and slides */
+// change current directory
 void myCd(char **cmd){
     if(!cmd[1] || strcmp(cmd[1], " ") == 0) {
         chdir(cmd[1]);
@@ -105,8 +162,7 @@ void myCd(char **cmd){
     }
 }
 
-/* Simple clear argument, cant use system("clear") so it was suggested to me to use the
-    ANSI encoder to clear the screen */
+/* clear the screen */
 void myClr() {
     printf("\e[1;1H\e[2J");
 }
@@ -176,6 +232,18 @@ void myPause() {
 
 void myQuit() {
     exit(EXIT_SUCCESS);
+}
+
+
+
+void resetIO(FILE *in_container, FILE *out_container, int inNum, int outNum, int errNum) {
+    dup2(inNum, STDIN_FILENO);
+    if(in_container)
+        fclose(in_container);
+    if(out_container)
+        fclose(out_container);
+    dup2(outNum, STDOUT_FILENO);
+    dup2(errNum, STDERR_FILENO);
 }
 
 //Below are I/O redirection functions
