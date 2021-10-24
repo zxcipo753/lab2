@@ -29,6 +29,13 @@ void resetIO(FILE *in_container, FILE *out_container, int inNum, int outNum, int
 
 
 int main(int argc, char **argv) {
+    char pwd[SET_SIZE];
+    if(!getcwd(pwd, sizeof(pwd))) {
+        printf("Cannot get current directory.");
+        return EXIT_FAILURE;
+    }
+    strcat(pwd, "/myshell"); 
+    setenv("shell", pwd, 1);
     
 }
 
@@ -73,6 +80,7 @@ void myBatch(char *batchFile) {
             }
 
             myExecute(argument);
+
             resetIO(in_container, out_containter, inNum, outNum, errNum);
             free(argument);
             strcpy(content, "");
