@@ -1,250 +1,240 @@
-#include "myshell.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <dirent.h>
+#include <ctype.h>
+#include <sys/wait.h>
+#define SIZE 1024
 
-void initial_stats(command* cmd){
-    cmd->arg[0] = NULL;
-    cmd->argc = 0;
-}
-
-void parsePipe(command* cmd, char* line){
-    char* copy_line = strdup(line);//make a duplicated line
-    cmd->pipe = 1;
-    char* token = NULL;
-    char* saveptr;
-    token = strtok_r(copy_line, "|", &saveptr);
-
-    if(token != NULL){
-        cmd->pipe = 1;
-        parseSpaces(cmd, token);
-    }
-
-    if(saveptr != NULL){
-        cmd->one = malloc(sizeof(command));
-        initialize(cmd->one);
-        parseSpaces(cmd->one, saveptr);
-    }
-}
+void myCd(char **cmd);
+void myClr();
+void myDir(char **cmd);
+void myEcho(char **cmd);
+void myEnviron();
+void myHelp();
+void myPause();
+void myQuit();
+FILE *inRedirection(char **cmd) ;
+FILE *outRedirection(char **cmd) ;
+void shSetEnv(char *argument);
+void shShowEnviron(char **argument);
 
 
-void parseSpaces(command* cmd, char* line){
-    char* copy_line = strdup(line);
-    char* token = NULL;
-    char* saveptr;
-
-    int index = 0;
-    token = strtok_r(copy_line, " ", &saveptr);
-    while(token != NULL){
-        cmd->arg[index] = strdup(token);
-        index+=1;
-        token = strtok_r(NULL, " ", &saveptr);
-    }
-    cmd->argc = index;
-    cmd->arg[index] = NULL;
-    free(line_dup);
-}
-
-void parseBackground(command* cmd, char* line){
-    cmd->background = 1;
-    char* ptr = line;
-    int index = 0;
-    while( *(ptr+index) != '\0' ){
-        if(*(ptr+index) == '&'){
-            *(ptr+index) = '\0';
-        }
-        index+=1;
-    }
-    parseSpaces(cmd, line);
-}
-
-void input_redirection(command* cmd, char* line){
-
-    char* copy_line = strdup(line);
-    
-    char* saveptr;
-    char* token;
-    token = strtok_r(copy_line, "<", &saveptr);
-    if(token != NULL){
-        parseSpaces(cmd, token);
-    }
-    if(saveptr != NULL){
-        if(*saveptr == '<'){
-            cmd->inputMod = 2;
-            saveptr = saveptr+1;
-        }
-        while(*saveptr == ' '){
-            saveptr+=1;
-        }
-        cmd->file = strdup(saveptr);
-    }
-}
-
-
-void output_redirection(command* cmd, char* line){
-    char* copy_line = strdup(line);
-    char* saveptr;
-    char* token;
-    token = strtok_r(copy_line, ">", &saveptr);
-    if(token != NULL){
-        parseSpaces(cmd, token);
-    }
-    if(saveptr != NULL){
-        if(*saveptr == '>'){
-            cmd->outputMod = 2;
-            saveptr = saveptr+1;
-        }else{
-            cmd->outputMod = 1;
-        }
-        while(*saveptr == ' '){
-            saveptr+=1;
-        }
-        cmd->file = strdup(saveptr);
-    }
-    free(line_dup);
-}
-void input_output_redirection(command* cmd, char* line){
-    cmd->one = malloc(sizeof(command));
-    initialize(cmd->one);
-    char* copy_line = strdup(line);
-    char* saveptr;
-    char* token = strtok_r(copy_line, "<", &saveptr);
-    if(token != NULL){
-        parseSpaces(cmd, token);
-    }
-    if(saveptr != NULL){
-        if(*(saveptr) == '<'){
-            cmd->inputMod = 2;
-            saveptr+=1;
-        }else{
-            cmd->inputMod = 1;
-        }
-    }
-    char* token1 = strtok_r(NULL, ">", &saveptr);
-    if(token1 != NULL){
-        cmd->file = strdup(token1);
-    }
-    
-    if(saveptr != NULL){
-        if(*(saveptr) == '>'){
-            saveptr+=1;
-            cmd->outputMod = 2;
-        }else{
-            cmd->outputMod = 1;
-        }
-        cmd->one->file = strdup(saveptr);
-    }
-    
+int main(int argc, char **argv) {
     
 }
-void cd_(command* cmd){
-    static char pwd[PATH_SIZE]; //local
-    getcwd(pwd, sizeof(pwd));
-    
-    if(cmd->argc > 2){ //error auguments amount
-        puts("Enter only one argument.");
+
+/* Make sure the command line is not empty, then split input into each token to get arguments*/
+char **parse_line(char *input) {
+    char **cmd = malloc(BUFF_SIZE *sizeof(char *));
+    char *token;
+    char error_occur[50] = "The line is empty.";
+
+    //make sure command line is not empty
+    if(cmd == NULL) {
+        write(STDERR_FILENO, error_occur, strlen(error_occur));
+        exit(EXIT_FAILURE);
+    }
+
+    //get first token
+    token = strtok(input, " \t\r\n\a");
+    int i = 0;
+    //continuing to get rest tokens
+    while(token != NULL) {
+        cmd[i] = token;
+        token = strtok(NULL, " \t\r\n\a");
+        i++;
+    }
+    cmd[i] = NULL;
+    return cmd;
+}
+
+
+int bg(char **argument) {
+    int i = 0;
+    while(argument[i]) {
+        i++;
+    }
+    if(strcmp(argument[i-1], "&") == 0) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+void myPrompt() {
+    char pwd[1024];
+    if(getcwd(pwd, sizeof(pwd))) {
+        printf("%s/myshell>", pwd);
+    } else {
+        printf("Cannot get current directory.")
+    }
+}
+
+
+void *builtIn(char **argument))(char **argument {
+    void (*func)(char **) = NULL; 
+    if(strcmp(argument[0], "clr") == 0 || strcmp(argument[0], "clear") == 0) {
+        return &myClr;
+        //return 1; can't use this since return makes pointer from integer without a cast
+    } else if(strcmp(argument[0], "dir") == 0) {
+        return &myDir;
+    } else if(strcmp(argument[0], "environ") == 0) {
+        return &myEnviron;
+    } else if(strcmp(argument[0], "echo") == 0) {
+        return &myEcho;
+    } else if(strcmp(argument[0], "help") == 0) {
+        return &myHelp;
+    } else if(strcmp(argument[0], "pause") == 0) {
+        return &myPause;
+    }
+    return NULL;
+}
+
+/* Change Directory function that we went over in class and slides */
+void myCd(char **cmd){
+    if(!cmd[1] || strcmp(cmd[1], " ") == 0) {
+        chdir(cmd[1]);
+    } 
+    else {
+        chdir(getenv("HOME")); 
+    }
+}
+
+/* Simple clear argument, cant use system("clear") so it was suggested to me to use the
+    ANSI encoder to clear the screen */
+void myClr() {
+    printf("\e[1;1H\e[2J");
+}
+
+/*
+list content in this directory
+*/
+void myDir(char **cmd) {
+    char *destination = cmd[1];
+    DIR *d;
+    struct dirent *dir;
+
+    //perror without current dir
+    if((d = opendir(destination)) == NULL) {
+        printf("Cannot get current dir.");
         return;
     }
-          
-    if(cmd->argc == 1){
-        puts(PWD);
-        return;
+    if(d != NULL) {
+        while((dir = readdir(d))) {
+            if(strcmp(".", dir->d_name) == 0 || strcmp("..", dir->d_name) == 0)
+                continue;
+            printf("%s\n", dir->d_name);
+        }
+        closedir(d);
     }
-    
-    if (chdir(cmd->arg[1]) == 0){
-        getcwd(pwd, sizeof(PWD));
-        setenv("PWD", pwd, 1);
-    }else{
-        puts("chdir fails.");
-    }
-    
 }
 
-void clr_(){
-    printf("\033[H\033[2J"); // clean the screen
-}
-
-void dir_ (command* cmd){
-    
-    if(cmd->argc > 2){ //error arguments amount
-        puts("Enter only one argument.");
-        return;
-    }
-    
-    char pwd[PATH_SIZE]; //local
-    if(getcwd(pwd, sizeof(pwd)) == NULL){
-        perror("cannot get current dir");
-        return;
-    }
-    
-    char file_path[PATH_SIZE] = "";
-
-    if(cmd->argc == 1){
-        strcat(file_path, pwd);
-    }else{
-        strcat(file_path, cmd->arg[1]);
-    }
-    
-    DIR* dir = opendir(filePath);
-
-    if(dir == NULL){
-        perror("open file failed");
-        return;
-    }
-    
-    struct dirent* dirList = NULL;
-    while((dirList = readdir(dir) )!= NULL){
-        printf("%s\n", dirList->d_name);
-    }
-    closedir(dir);
-    
-}
-
-void environ_(){
-    int i =0;
-    while(environ[i] != NULL){
+/* Echo function that prints everything after args[0] to the screen */
+void myEnviron() {
+    int i = 0;
+    while(environ[i]) {
         printf("%s\n", environ[i]);
-        i += 1;
+        i++;
     }
 }
 
-void echo_(command* cmd){
-    
-    if(cmd->argc == 1){
-        puts("");
-    }
-    else{
-        for(int i = 1; i < cmd->argc && cmd->arg[i] != NULL; i++){
-            printf("%s ", cmd->arg[i]);
-        }
+void myEcho(char **cmd) {
+    if (cmd[1] == NULL)
+        fprintf(stdout, "\n");
+    else {
+        for (int i = 1; cmd[i] != NULL; i++)
+            printf("%s ", cmd[i]);
         printf("\n");
     }
 }
-void help_(){
-    char pwd[PATH_SIZE];
-    getcwd(pwd, sizeof(pwd);
-    
-    strcat(pwd, "/readme");
-    FILE* fptr = fopen(pwd, "r");
 
-    char content;
-    content = fgetc(fptr);
-    while(content != EOF){
-        printf("%c", content);
-        content = fgetc(fptr);
+void myHelp(char **argument) {
+    char current[SIZE] = "";
+    pid_t pid;
+    strcat(current, getenv("PWD"));
+    strcat(current, "/readme");
+    if((pid = fork()) == 0) {
+        execlp("more", "more", current, NULL);
+        write(STDERR_FILENO, error_message, strlen(error_message));
+        exit(EXIT_FAILURE);
+    } else {
+        waitpid(pid, NULL, 0);
     }
-           
-    fclose(fptr);
-    puts("");
 }
 
-void pause_(){
-    while(getchar() != '\n'){
+//Till user hits Enter
+void myPause() {
+    while(getchar() != '\n') {
         ;
     }
 }
 
-void quit_(){
+void myQuit() {
     exit(EXIT_SUCCESS);
+}
+
+//Below are I/O redirection functions
+FILE *inRedirection(char **cmd) {
+    FILE *file1 = NULL;
+    int index = 1;
+    int counter = 0;
+
+    // use a loop to travese all input
+    while(cmd[index]) {
+        //find the key symbol '<'
+        if(cmd[index][0] == '<') {
+            counter = index;
+        // move forward the pointer to get the source file to input
+        if(cmd[index++]) {
+            file1 = fopen(cmd[index], "r");
+            open(cmd[index], O_RDONLY);//open file with READ only mode
+            if(file1 == NULL) {
+                printf("File does not exist.");
+            }
+            while(cmd[counter+1]) {
+                cmd[counter] = cmd[counter+1];
+                counter++;
+            } 
+            return file1;
+            }
+        }
+        index++;
+    }
+    return file1;
+}
+
+FILE *outRedirection(char **cmd) {
+    FILE *file1 = NULL;
+    int index = 1;
+    int counter;
+    char file_mode[] = ""; // determine whether the file open as read or write mode
+
+    // use a loop to travese all input
+    while(cmd[index]) {
+        //find the key symbol '>'
+        if(strcmp(cmd[index], ">") == 0) {
+            counter = index;
+            file_mode[0] = 'w';
+        } else if(strcmp(cmd[index], ">>") == 0) {
+            counter = index;
+            file_mode[0] = 'a';
+        }
+             
+        if(cmd[index++]) {
+            file1 = fopen(cmd[index], file_mode);
+            if(file1 == NULL) {
+                printf("File does not exist.");
+            }
+            cmd[counter] = NULL;
+            return file1;
+            }
+        
+            index++;
+    }
+    return file1;
 }
