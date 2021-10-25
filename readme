@@ -1,0 +1,47 @@
+
+*****************************************************************************************************
+Mannul:
+
+Internal Commands:
+    -cd: changes directory from current directory to a directory
+    -clr: clear the current screen
+    -dir: shows what is inside the specified directory
+    -echo: displays comment on screen followed by newline
+    -environ: display all environment strings
+    -help: display readme file as a help mannul
+    -pause: shell is paused until user hits Enter
+    -quit: quit myshell
+
+
+IO Redirection:
+    Myshell allows users to use files as input/outputs, which is known as I/O redirection
+    Syntax and features:
+	Input:
+            Syntax: command < file
+            It will run a command and input into a inputFile.txt
+        Output case 1:
+            Syntax: command > file   
+            It will take the output of a command, then put into the file and overwrite the content
+        Output case 2:
+            Syntax: command >> file
+            It will take output of  a command, then put into the file and continue to write
+  
+        Mixing Input and Output:
+            Syntax: cmd < file(in) > file(out)
+            It will count the lines, words, and characters in file(in) and output
+             this count to file(out)
+
+External functions:
+Piping:
+    Syntax: program1/cmd1 | program2/cmd2
+    It will take output of program1 and use it as an input for program2
+
+Background Processing:
+    Syntax: command & (note that & must be at end of command or command argument)
+    It will run command in background
+
+BatchFile mode:
+    Syntax: myshell batchfilePATH
+    Commands written in batchfile.txt will be run
+
+*****************************************************************************************************

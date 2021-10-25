@@ -205,7 +205,6 @@ int myExecute(char **cmd) {
 }
 
 
-/* External function about pipe */
 // Parse command line to find out if these is a '|'(pipe) in cmd.
 int parse_pipe(char **cmd) {
     int index = 0;

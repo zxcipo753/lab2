@@ -1,0 +1,18 @@
+Qian Peng
+CIS 3207
+Lab2 Linux Shell Development
+
+General Documentation:
+
+Structure:
+	I combine utility.c into myshell.c, and I try to extract more functions from main() to make my codes more straightforward.
+	The main() will first set environment, and then run commands saved in batchfile.txt in batch mode. Then it will call mainLoop() to set prompt and waiting for input from user.
+	In this main loop, readInput() and parse_line() will take the user's input into valid arguments, and then check if I/O redirection is used. If not, move forward to myExecute().
+         In myExecute(), the program will first check if user use buildIn functions of cd() or quit(); if not, move to find whether there is a pipe '|' or '&' in input. Then handle the rest build-in or external functions, and loop again.
+
+Test:
+    I first split buildIn functions inside out for independent testing include batchfile mode, but there are many segment faults. I got no clue to fix them until I use to pointer in buildIn() function to manage memory. After that, I start to test I/O redirection and found many helps from stack overflow. However, pipeing and run batchfile mode for piping is very difficult. I got no result after running program, fail to destroy child process, forget to free the arguments, or did not reset the file descriptors. I got more help on YouTube and stack overflow to find some solution, and then fix them one by one.
+
+Summary:
+   This is a very hard assignment, but it makes me recap the pointer in C, and learn how to manage memory and child process. I've also learnt about file descriptor, I/O redirection, and segment fault.
+Shell is not very robust to handle some weird input, so I will update and fix some small bugs on GitHub.
