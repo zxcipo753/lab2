@@ -1,3 +1,6 @@
 echo 3207
 ls | wc
+ls -la >> test.txt
+cat < test.txt > out.txt
+
 
