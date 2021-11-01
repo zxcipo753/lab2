@@ -41,7 +41,7 @@ Background Processing:
     It will run command in background
 
 BatchFile mode:
-    Syntax: myshell batchfilePATH
+    Syntax: myshell batchfile.txt
     Commands written in batchfile.txt will be run
 
 *****************************************************************************************************

@@ -11,6 +11,9 @@
 #include <ctype.h>
 #include <sys/wait.h>
 
+#define SET_SIZE 256
+#define BUFF_SIZE 256
+
 const int READ = 0;
 const int WRITE = 1;
 extern char **environ;
