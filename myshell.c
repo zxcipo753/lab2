@@ -1,4 +1,4 @@
-#include "lab02myshell.h"
+#include "myshell.h"
 
 int main(int argc, char **argv) {
      //Set environment
